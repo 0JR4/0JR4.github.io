@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HVNL Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <style>
+    #map { height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([52.1, 5.1], 7); // Startpositie Nederland
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap-bijdragers'
+    }).addTo(map);
+
+    const api = "https://hvnlmap.free.nf/proxy.php";
+
+    // 1. MARKERS LADEN
+    fetch(api)
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(marker => {
+          L.marker([marker.lat, marker.lng])
+            .addTo(map)
+            .bindPopup(marker.description || "Geen beschrijving");
+        });
+      });
+
+    // 2. NIEUWE MARKER TOEVOEGEN DOOR TE KLIKKEN
+    map.on('click', e => {
+      const { lat, lng } = e.latlng;
+      const beschrijving = prompt("Beschrijving van de marker:");
+
+      if (beschrijving !== null) {
+        fetch(api, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lat, lng, description: beschrijving })
+        })
+        .then(res => res.json())
+        .then(result => {
+          if (result.status === "ok") {
+            L.marker([lat, lng]).addTo(map).bindPopup(beschrijving).openPopup();
+          } else {
+            alert("Fout bij opslaan: " + result.error);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
